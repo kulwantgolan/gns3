@@ -1,0 +1,105 @@
+Windows machine (firewall off)- VMNET3 - 192.168.3.2
+Kali - VMNET 4 - 192.168.4.2
+Cloud ( eth2 -  brige network in GNS VM) -> Internet 192.168.1.0  
+
+----------
+Test R2 to internet
+----------
+conf t
+int f0/1
+no shut
+ip addr dhcp 
+end
+
+sh ip int br
+
+ping 192.168.1.1 re 3
+
+ping 8.8.8.8 re 3
+
+#if needed to troubleshoot
+conf t
+int f0/1
+shut
+----------------
+R2 - f0/0 -  172.16.1.2/24
+-----------------
+
+conf t
+int f0/0
+no shut
+ip addr 172.16.1.2 255.255.255.0 
+int l0
+ip addr 2.2.2.2 255.255.255.255 
+router eigrp 100
+network 0.0.0.0
+end
+
+conf t
+access-list 1 permit 192.168.0.0 0.0.255.255
+int f0/0
+ip nat inside
+int f0/1
+ip nat outside
+exit
+ip nat inside source list 1 interface fa 0/1 overload
+end
+
+sh ip eigrp nei
+
+sh ip int br
+sh ip route 
+
+
+
+
+----------------
+R1 - f0/0 - 172.16.1.1/24
+vlan 3 - f0/0.10  
+vlan 4 - f0/0.20
+----------------
+
+conf t
+int f0/0
+no shut
+ip addr 172.16.1.1 255.255.255.0  
+int f0/1
+no shut
+exit
+
+int f 0/1.10
+encapsulation dot1Q 3
+ip addr 192.168.3.1 255.255.255.0
+exit
+int f 0/1.20
+encapsulation dot1Q 4
+ip addr 192.168.4.1 255.255.255.0
+int l0
+ip addr 1.1.1.1 255.255.255.255 
+
+router eigrp 100
+network 0.0.0.0
+exit
+ip route 0.0.0.0 0.0.0.0 172.16.1.2
+end
+
+conf t
+ip dhcp pool vlan3
+   network 192.168.3.0 255.255.255.0
+   default-router 192.168.3.1
+   dns-server 8.8.8.8
+
+ip dhcp pool vlan4
+   network 192.168.4.0 255.255.255.0
+   default-router 192.168.4.1
+   dns-server 8.8.8.8
+end
+
+
+sh ip int br
+sh ip route 
+
+--------
+SAVE
+-----
+wr
